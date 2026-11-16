@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>you can't KILL THE HYDRA</title>
+    <!-- Tailwind CSS for clean, responsive UI overlays -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Black Ops One for the distressed action title, Inter & JetBrains Mono for lab HUD -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =====================================================================
+           CUSTOM STYLES & ANIMATIONS
+           ===================================================================== */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #061822;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Distressed action-style title font */
+        .action-title {
+            font-family: 'Black Ops One', cursive;
+            letter-spacing: 0.04em;
+            text-shadow: 0 6px 24px rgba(0, 0, 0, 0.7), 0 0 40px rgba(45, 212, 191, 0.35);
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Full-screen interactive petri dish / tank canvas */
+        #labCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Subtle glassmorphism for lab HUD panels */
+        .lab-panel {
+            background: rgba(10, 31, 44, 0.78);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(94, 234, 212, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Tool button active & hover styling */
+        .tool-btn {
+            transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .tool-btn:hover {
+            transform: translateX(4px);
+            border-color: rgba(94, 234, 212, 0.7);
+        }
+        .tool-btn.active {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.35), rgba(14, 116, 144, 0.45));
+            border-color: #2dd4bf;
+            box-shadow: 0 0 18px rgba(45, 212, 191, 0.35);
+            transform: translateX(6px);
+        }
+
+        /* Left-side pop-out weapons/tools drawer animation */
+        #toolsDrawer {
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #toolsDrawer.collapsed {
+            transform: translateX(-100%);
+        }
+        #drawerToggleTab {
+            transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease;
+        }
+
+        /* Custom scrollbar for Zoology Field Guide */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(45, 212, 191, 0.4);
+            border-radius: 8px;
+        }
+
+        /* Smooth fade out for Title Screen */
+        .fade-out {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease-out;
+        }
+    </style>
+</head>
+<body class="relative text-slate-100">
+
+    <!-- =====================================================================
+         1. TITLE SCREEN OVERLAY ("you can't KILL THE HYDRA")
+         ===================================================================== -->
+    <div id="titleScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 text-center">
+        <div class="max-w-3xl mx-auto flex flex-col items-center">
+            <!-- Cheeky smaller uppercase text above the main title -->
+            <span class="mono-font text-teal-300 text-sm sm:text-lg md:text-xl font-bold tracking-[0.35em] uppercase mb-1 sm:mb-2 opacity-90">
+                (you can't)
+            </span>
+            
+            <!-- Massive bold distressed action-style main title -->
+            <h1 class="action-title text-5xl sm:text-7xl md:text-8xl text-white uppercase leading-none mb-3">
+                KILL THE <span class="text-teal-400">HYDRA</span>
+            </h1>
+
+            <p class="text-slate-300 text-sm sm:text-base max-w-lg mb-8 leading-relaxed">
+                Welcome to the Freshwater Cnidarian Lab. Test your sharpest tools against 
+                <em class="text-teal-200 font-semibold">Hydra vulgaris</em>—a biologically immortal freshwater polyp—and unlock all 5 Zoology Research Sections.
+            </p>
+
+            <!-- Start Button -->
+            <button id="enterLabBtn" class="group relative inline-flex items-center gap-3 px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-lg sm:text-xl rounded-2xl shadow-[0_0_30px_rgba(20,184,166,0.5)] transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer">
+                <span>ENTER LAB</span>
+                <svg class="w-6 h-6 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         2. MAIN SIMULATION CANVAS (Aquarium / Petri Dish)
+         ===================================================================== -->
+    <canvas id="labCanvas"></canvas>
+
+    <!-- =====================================================================
+         3. LEFT-SIDE POP-OUT "WEAPONS / LAB TOOLS" DRAWER
+         ===================================================================== -->
+    <!-- Always-visible left-edge toggle tab (stays pinned outside the drawer!) -->
+    <button id="drawerToggleTab" style="left: 16rem;" class="lab-panel fixed top-1/2 -translate-y-1/2 z-40 py-4 px-2.5 rounded-r-2xl border-l-0 flex flex-col items-center gap-2 text-teal-300 hover:text-white hover:bg-teal-900/70 shadow-xl opacity-0 pointer-events-none cursor-pointer" title="Toggle Weapons / Lab Tools (Shortcut: T)">
+        <span id="drawerArrowIcon" class="text-xs font-extrabold text-amber-300">◀</span>
+        <span class="text-lg">🧰</span>
+        <span class="mono-font text-[10px] font-extrabold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">
+            TOOLS
+        </span>
+    </button>
+
+    <aside id="toolsDrawer" class="fixed top-24 left-0 z-30 w-64 pointer-events-none opacity-0 transition-opacity duration-500">
+        <!-- Drawer Panel -->
+        <div class="lab-panel pointer-events-auto w-full rounded-r-2xl p-3.5 border-l-0 max-h-[calc(100vh-7.5rem)] overflow-y-auto custom-scroll">
+            <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-teal-500/20">
+                <div>
+                    <div class="mono-font text-[10px] uppercase tracking-widest text-teal-300">Arsenal & Bio-Tests</div>
+                    <h3 class="text-sm font-extrabold text-white">Lab Tools / Weapons</h3>
+                </div>
+                <button id="closeDrawerBtn" title="Collapse Drawer" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs cursor-pointer">
+                    ◀
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <!-- TOOL 1: Glass Probe (Locomotion & Nerve Net) -->
+                <button data-tool="poke" class="tool-btn active flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">👉</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Glass Probe</div>
+                        <div class="text-[10px] mono-font text-teal-300/80">Nerve Net & Somersault</div>
+                    </div>
+                </button>
+
+                <!-- TOOL 2: Lab Scalpel (Bisection & Morphallaxis) -->
+                <button data-tool="scalpel" class="tool-btn flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">🔪</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Lab Scalpel</div>
+                        <div class="text-[10px] mono-font text-teal-300/80">Slice / Morphallaxis</div>
+                    </div>
+                </button>
+
+                <!-- TOOL 3: Drop Daphnia (Nematocysts & Asexual Budding) -->
+                <button data-tool="feed" class="tool-btn flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">🦐</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Drop Daphnia</div>
+                        <div class="text-[10px] mono-font text-teal-300/80">Nematocysts & Budding</div>
+                    </div>
+                </button>
+
+                <!-- TOOL 4: Cell Blender (Cellular Reaggregation) -->
+                <button data-tool="blender" class="tool-btn flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">🌪️</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Cell Blender</div>
+                        <div class="text-[10px] mono-font text-teal-300/80">Stem Cell Reassembly</div>
+                    </div>
+                </button>
+
+                <!-- TOOL 5: Thermal Shock (Sexual Reproduction & Cysts) -->
+                <button data-tool="temp" class="tool-btn flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">❄️</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Cold / Temp Shock</div>
+                        <div class="text-[10px] mono-font text-sky-300/90">Sexual Gametes & Cysts</div>
+                    </div>
+                </button>
+
+                <!-- TOOL 6: Copper / Heavy Metal Dropper (Ecological Threats) -->
+                <button data-tool="copper" class="tool-btn flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/85 border border-slate-700/80 text-left cursor-pointer">
+                    <span class="text-2xl shrink-0">🧪</span>
+                    <div>
+                        <div class="text-xs sm:text-sm font-bold text-white">Copper Toxin</div>
+                        <div class="text-[10px] mono-font text-rose-300/90">Heavy Metal Threat Test</div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t border-slate-700/70 flex gap-2">
+                <button id="flushTankBtn" class="flex-1 py-2 px-2.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 text-xs font-bold transition cursor-pointer">
+                    💧 Clean Water
+                </button>
+                <button id="resetTankBtn" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- =====================================================================
+         4. TOP HUD OVERLAYS (Stats, Research Guide Button & Live Field Notes)
+         ===================================================================== -->
+    <div id="labHud" class="fixed inset-x-0 top-0 z-20 pointer-events-none flex flex-col md:flex-row justify-between items-start gap-2.5 p-3 sm:p-4 opacity-0 transition-opacity duration-500">
+        
+        <!-- Left Top: Population Counter & Zoology Rubric Field Guide Button -->
+        <div class="flex flex-wrap items-center gap-2.5 pointer-events-auto">
+            <div class="lab-panel rounded-2xl px-3.5 py-2.5 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300 text-lg">
+                    🧬
+                </div>
+                <div>
+                    <div class="text-[10px] mono-font uppercase tracking-wider text-teal-300/80">
+                        Hydra vulgaris
+                    </div>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xs text-slate-300">Polyps:</span>
+                        <span id="hydraCount" class="mono-font text-xl font-extrabold text-white">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Full Zoology Rubric Field Guide Button -->
+            <button id="openGuideBtn" class="lab-panel hover:bg-teal-900/60 border-amber-400/50 rounded-2xl px-4 py-2.5 flex items-center gap-3 transition transform hover:scale-[1.02] active:scale-95 cursor-pointer">
+                <span class="text-xl">📘</span>
+                <div class="text-left">
+                    <div class="text-[10px] mono-font uppercase tracking-wider text-amber-300 font-bold">
+                        Zoology Research
+                    </div>
+                    <div class="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
+                        <span>Field Guide</span>
+                        <span id="rubricProgressBadge" class="mono-font text-[11px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/40">
+                            1/5 Unlocked
+                        </span>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Right Top: Live Zoology Discovery Toast / Field Note -->
+        <div class="lab-panel pointer-events-auto rounded-2xl p-3 sm:p-3.5 w-full md:max-w-md">
+            <div class="flex items-center justify-between mb-1">
+                <span class="mono-font text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    Live Lab Observation
+                </span>
+                <span id="noteTag" class="mono-font text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-200 border border-teal-400/30">
+                    PHYLUM CNIDARIA
+                </span>
+            </div>
+            <h2 id="noteTitle" class="text-xs sm:text-sm font-bold text-white mb-0.5">
+                Meet Hydra vulgaris
+            </h2>
+            <p id="noteBody" class="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                Open the <strong>Tools</strong> drawer on the left and test different lab instruments on the Hydra! Each tool unlocks a section of your Zoology Research Guide.
+            </p>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         5. COMPREHENSIVE ZOOLOGY RUBRIC FIELD GUIDE MODAL
+         ===================================================================== -->
+    <div id="guideModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+        <div class="lab-panel w-full max-w-4xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden border-teal-400/40">
+            
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-6 border-b border-teal-500/20 flex items-center justify-between bg-slate-900/60">
+                <div>
+                    <div class="mono-font text-xs text-teal-300 uppercase tracking-widest mb-1">
+                        Phylum Cnidaria • Class Hydrozoa • Hydra vulgaris
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-white">
+                        Zoology Research & Project Field Guide
+                    </h2>
+                </div>
+                <button id="closeGuideBtn" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-rose-500/30 border border-slate-600 hover:border-rose-400 text-slate-200 font-bold text-lg flex items-center justify-center transition cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Category Tabs -->
+            <div id="guideTabs" class="flex overflow-x-auto gap-2 p-3 sm:px-6 bg-slate-950/40 border-b border-teal-500/15">
+                <button data-tab="characteristics" class="guide-tab active shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-500/25 text-teal-200 border border-teal-400/50 cursor-pointer">
+                    1. General Characteristics
+                </button>
+                <button data-tab="habitat" class="guide-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-teal-400/40 cursor-pointer">
+                    2. Habitat & Geography
+                </button>
+                <button data-tab="lifecycle" class="guide-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-teal-400/40 cursor-pointer">
+                    3. Life Cycle & Immortality
+                </button>
+                <button data-tab="diet" class="guide-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-teal-400/40 cursor-pointer">
+                    4. Diet & Feeding
+                </button>
+                <button data-tab="facts" class="guide-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-teal-400/40 cursor-pointer">
+                    5. Fun Facts & Why I Chose It
+                </button>
+            </div>
+
+            <!-- Modal Body Content (Populated dynamically by JS) -->
+            <div id="guideContent" class="p-4 sm:p-6 overflow-y-auto custom-scroll space-y-4 text-sm text-slate-200 leading-relaxed">
+                <!-- Content injected here -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3.5 sm:px-6 border-t border-teal-500/20 bg-slate-900/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                <span>Tip: Test every tool in the left drawer to see these biological traits live in the tank!</span>
+                <button id="closeGuideFooterBtn" class="px-5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold transition cursor-pointer">
+                    Back to Lab
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         6. GAME ENGINE & ZOOLOGY SIMULATION SCRIPT
+         ===================================================================== -->
+    <script>
+        /**
+         * ===================================================================
+         * LIVE LAB OBSERVATIONS (Triggered when using tools)
+         * ===================================================================
+         */
+        const ZOOLOGY_NOTES = {
+            intro: {
+                tag: "PHYLUM CNIDARIA",
+                title: "Biological Immortality",
+                body: "Hydra vulgaris lacks senescence (aging). Because its three stem cell lineages continuously divide, it can theoretically live forever.",
+                unlock: "characteristics"
+            },
+            poke: {
+                tag: "NERVE NET & LOCOMOTION",
+                title: "Directional Somersaulting Escape",
+                body: "Hydras have no brain! Poking one triggers a diffuse nerve net response: it bends away from the touch, anchors its sticky glutinant nematocysts on its tentacles to the floor, and flips its basal disc over in a full somersault!",
+                unlock: "characteristics"
+            },
+            scalpel: {
+                tag: "MORPHALLAXIS",
+                title: "Head & Foot Regeneration",
+                body: "Cutting a hydra in half doesn't kill it! Through morphallaxis, existing cells reorganize—growing a new head (hypostome) on the bottom half and a new basal disc on the top half.",
+                unlock: "lifecycle"
+            },
+            feed: {
+                tag: "NEMATOCYSTS & BUDDING",
+                title: "Venomous Harpoons & Asexual Budding",
+                body: "Tentacles fire barbed nematocysts in microseconds to paralyze Daphnia prey. High nutrition fuels asexual budding, growing a genetically identical clone off the parent's column!",
+                unlock: "diet"
+            },
+            blender: {
+                tag: "STEM CELL PLASTICITY",
+                title: "Cellular Reaggregation",
+                body: "Even when dissociated into a cloud of individual ectoderm (outer) and endoderm (inner) cells, Hydra cells sort themselves out and reassemble into brand-new polyps!",
+                unlock: "facts"
+            },
+            temp: {
+                tag: "SEXUAL REPRODUCTION",
+                title: "Cold Shock, Gametes & Resting Cysts",
+                body: "When temperatures drop or food becomes scarce, Hydra switches from budding to sexual reproduction—forming testes/ovaries and releasing tough resting cysts (eggs) that survive winter!",
+                unlock: "lifecycle"
+            },
+            copper: {
+                tag: "ECOLOGICAL THREATS",
+                title: "Sensitivity to Heavy Metal Pollution",
+                body: "While practically immune to physical trauma and aging, Hydra vulgaris is highly sensitive to water pollution—especially copper (Cu²⁺), zinc, and agricultural runoff. Click 'Clean Water' to flush the tank!",
+                unlock: "habitat"
+            }
+        };
+
+        /**
+         * ===================================================================
+         * FULL 5-SECTION ZOOLOGY RUBRIC CONTENT DATABASE
+         * ===================================================================
+         */
+        const RUBRIC_SECTIONS = {
+            characteristics: {
+                title: "1. General Characteristics of Hydra vulgaris",
+                badge: "Taxonomy, Anatomy, Locomotion & Niche",
+                html: `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4">
+                            <h3 class="text-teal-300 font-bold text-base mb-2">Scientific Classification</h3>
+                            <ul class="space-y-1 text-xs sm:text-sm text-slate-300 mono-font">
+                                <li><span class="text-slate-400">Kingdom:</span> Animalia</li>
+                                <li><span class="text-slate-400">Phylum:</span> Cnidaria</li>
+                                <li><span class="text-slate-400">Class:</span> Hydrozoa</li>
+                                <li><span class="text-slate-400">Order:</span> Anthoathecata</li>
+                                <li><span class="text-slate-400">Family:</span> Hydridae</li>
+                                <li><span class="text-slate-400">Genus:</span> Hydra</li>
+                                <li><span class="text-slate-400">Species:</span> <em>Hydra vulgaris</em></li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4">
+                            <h3 class="text-teal-300 font-bold text-base mb-2">Body Plan & Anatomy</h3>
+                            <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+                                <li><strong>Radial Symmetry & Diploblastic:</strong> Two tissue layers—an outer protective <em>ectoderm</em> and inner digestive <em>endoderm</em>—separated by a jelly-like <em>mesoglea</em>.</li>
+                                <li><strong>Polyp-Only Body:</strong> Tubular column (~10–30 mm long) anchored by a sticky <strong>basal  disc</strong>.</li>
+                                <li><strong>Hypostome & Tentacles:</strong> Cone-shaped mouth ringed by 4–12 mobile tentacles armed with stinging <strong>cnidocytes</strong>.</li>
+                                <li><strong>Diffuse Nerve Net:</strong> No brain or central nervous system; neurons form a net that coordinates whole-body contractions.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4">
+                        <h3 class="text-teal-300 font-bold text-base mb-2">Locomotion, Ecological Niche & Threats</h3>
+                        <p class="mb-2"><strong>Locomotion:</strong> Though mostly sessile , <em>Hydra</em> moves toward light or prey by <strong>somersaulting</strong> (bending over, gripping the substrate with tentacles, and flipping its foot over its head), <strong>inchworm looping</strong>, gliding slowly on its basal disc, or secreting a gas bubble to float.</p>
+                        <p class="mb-2"><strong>Niche in Ecosystem:</strong> Acts as an important freshwater secondary consumer (micropredator) that regulates zooplankton populations. In turn, it serves as prey for flatworms , freshwater snails, and small fish larvae.</>
+                        <p><strong>Threats to the Organism:</strong> Heavy metal contamination (especially dissolved <strong>copper</strong> and zinc), agricultural pesticide runoff, thermal pollution, and freshwater habitat loss.</p>
+                    </div>
+                `
+            },
+            habitat: {
+                title: "2. Habitat, Biome & Geographical Location",
+                badge: "Freshwater Lentic Ecosystems Worldwide",
+                html: `
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-3">
+                        <h3 class="text-teal-300 font-bold text-base">Aquatic Biome: Freshwater (Lentic Ecosystems)</h3>
+                        <p>Unlike almost all other cnidarians  which are marine, <em>Hydra vulgaris</em> lives exclusively in <strong>clean, unpolluted freshwater biomes</strong>.</p>
+                        <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+                            <li><strong>Microhabitat:</strong> Prefers still or slow-moving  waters including ponds, shallow lakes, marshes, quiet river backwaters, and drainage ditches.</li>
+                            <li><strong>Substrate Attachment:</strong> Uses glandular cells in its basal disc to cling to the undersides of lily pads, submerged aquatic plants , stones, and sunken twigs.</li>
+                            <li><strong>Water Conditions:</strong> Thrives in well-oxygenated, neutral-to-slightly alkaline freshwater (pH 6.5–8.0) with abundant small crustaceans.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-teal-300 font-bold text-base">Geographical Location</h3>
+                        <p><em>Hydra vulgaris</em> has a <strong>cosmopolitan distribution</strong> across temperate and tropical regions of the globe:</p>
+                        <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+                            <li><strong>North America:</strong> Widespread throughout freshwater ponds and lakes across the United States and southern Canada.</li>
+                            <li><strong>Europe & Asia:</strong> Commonly found across Western/Central Europe, the UK, Russia, Japan, and temperate parts of Asia.</li>
+                            <li><strong>Southern Hemisphere:</strong> Documented in freshwater systems in Australia and South America, making it one of the most globally accessible model organisms in biology.</li>
+                        </ul>
+                    </div>
+                `
+            },
+            lifecycle: {
+                title: "3. Life Cycle, Development & Reproduction",
+                badge: "Polyp-Only Cycle, Budding, Cysts & Immortality",
+                html: `
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-teal-300 font-bold text-base">General Life Cycle Stages (No Medusa Stage!)</h3>
+                        <p>Most hydrozoans alternate between a sessile polyp and a free-swimming medusa (jellyfish). <em>Hydra vulgaris</em> has completely lost the medusa stage, existing <strong>100% as a polyp</strong> throughout its life cycle:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 text-xs">
+                            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700">
+                                <div class="font-bold text-amber-300 mb-1">Stage 1: Encysted Embryo</div>
+                                Fertilized egg secretes a spiky protective shell (embryotheca) to survive winter freezing or drought.
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700">
+                                <div class="font-bold text-teal-300 mb-1">Stage 2: Juvenile Polyp</div>
+                                Direct development—hatches straight into a tiny 4-tentacled polyp (no swimming planula larva).
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700">
+                                <div class="font-bold text-emerald-300 mb-1">Stage 3: Adult Polyp</div>
+                                Reproduces asexually via budding in warm months, or sexually via gametes when stressed.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4">
+                            <h3 class="text-teal-300 font-bold text-base mb-1.5">Asexual vs. Sexual Reproduction</h3>
+                            <p class="mb-2"><strong>Asexual Budding:</strong> Under favorable conditions, a cylindrical bud forms on the lower column, grows tentacles, and pinches off within 2–3 days as a genetically identical clone.</p>
+                            <p><strong>Sexual Reproduction:</strong> Triggered by autumn cold shock or starvation. Temporary <strong>testes</strong> (upper column) release sperm to fertilize eggs in <strong>ovaries</strong> (lower column), forming dormant winter cysts.</p>
+                        </div>
+                        <div class="bg-slate-900/75 border border-amber-400/30 rounded-2xl p-4">
+                            <h3 class="text-amber-300 font-bold text-base mb-1.5">Lifespan: Biological Immortality</h3>
+                            <p><em>Hydra vulgaris</em> exhibits <strong>negligible senescence</strong> (it does not age). Its body is composed of three self-renewing stem cell populations governed by active <strong>FoxO longevity genes</strong>. Every cell in its body is completely replaced roughly every 20 days, allowing individuals in labs to live indefinitely without decline.</p>
+                        </div>
+                    </div>
+                `
+            },
+            diet: {
+                title: "4. Diet & Feeding Mechanism",
+                badge: "Carnivorous Micropredator & Nematocyst Harpoons",
+                html: `
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-teal-300 font-bold text-base">What Hydra vulgaris Eats</h3>
+                        <p><em>Hydra vulgaris</em> is a strict <strong>carnivorous micropredator</strong>. Its diet consists of small aquatic invertebrates, primarily:</p>
+                        <ul class="list-disc list-inside space-y-1 text-slate-300">
+                            <li><strong>Cladocerans:</strong> Water fleas such as <em>Daphnia</em> (its favorite staple prey).</li>
+                            <li><strong>Copepods & Ostracods:</strong> Tiny swimming crustaceans like <em>Cyclops</em> and seed shrimp.</li>
+                            <li><strong>Larvae & Worms:</strong> Newly hatched mosquito/midge larvae and small aquatic annelid worms.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-teal-300 font-bold text-base">How It Obtains & Digests Food </h3>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
+                            <li><strong>Passive Ambush:</strong> Anchored by its basal disc, the Hydra stretches its tentacles outward like a living fishing net.</li>
+                            <li><strong>Nematocyst Discharge:</strong> When prey touches a hair-like trigger (<em>cnidocil</em>) on a <strong>cnidocyte</strong> cell, osmotic pressure blasts open an operculum lid and fires a venomous, barbed <strong>nematocyst</strong> thread in ~700 nanoseconds (one of the fastest cellular events in biology!).</li>
+                            <li><strong>Glutathione Chemical Response:</strong> Wounded prey leaks the chemical <em>glutathione</em> into the water, signaling the Hydra's tentacles to curl inward and stuff the paralyzed prey into its expandable <strong>hypostome (mouth)</strong>.</li>
+                            <li><strong>Two-Stage Digestion:</strong> Enzymes in the central <strong>gastrovascular cavity</strong> break food down (extracellular digestion), and endodermal cells engulf the remaining fragments (intracellular digestion). Undigested waste is expelled back out the mouth.</li>
+                        </ol>
+                    </div>
+                `
+            },
+            facts: {
+                title: "5. Interesting Facts & Why I Chose This Project",
+                badge: "Mythology, Stem Cell Science & Game Design",
+                html: `
+                    <div class="bg-slate-900/75 border border-teal-500/25 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-teal-300 font-bold text-base">Fun Facts About Hydra vulgaris</h3>
+                        <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+                            <li><strong>Named After a Greek Monster:</strong> Biologist Abraham Trembley named it after the multi-headed <em>Lernaean Hydra</em> in 1744 after discovering that cutting one in half produced two complete animals.</li>
+                            <li><strong>Survives the "Blender Test":</strong> If a Hydra is dissociated into a suspension of single cells, the ectoderm and endoderm cells recognize each other, sort into layers, and build a brand-new Hydra from scratch.</li>
+                            <li><strong>Key to Human Aging Research:</strong> Scientists study <em>Hydra's</em> <strong>FoxO gene</strong> because variations of the exact same gene are found in human centenarians (people who live past 100).</li>
+                            <li><strong>No Eyes, Still Sees Light:</strong> Even without eyes or a brain, opsin proteins in its nerve net allow <em>Hydra</em> to sense light and move toward sunlit areas where prey gathers.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gradient-to-br from-teal-950/80 to-slate-900/90 border border-amber-400/35 rounded-2xl p-4 space-y-2">
+                        <h3 class="text-amber-300 font-bold text-base">Why I Chose Hydra vulgaris & This Game Project</h3>
+                        <p>When we had to choose a cnidarian for our project, I thought this one was pretty cool, because it was immortal</p>
+                    </div>
+                `
+            }
+        };
+
+        /**
+         * ===================================================================
+         * GLOBAL CANVAS & SIMULATION STATE
+         * ===================================================================
+         */
+        const canvas = document.getElementById('labCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let groundY = height - 65;
+
+        let activeTool = 'poke';
+        let gameStarted = false;
+        let time = 0;
+
+        // Track which of the 5 zoology rubric sections have been unlocked
+        const unlockedSections = new Set(['characteristics']);
+
+        // Environmental state (for Temperature Shock & Copper Pollution)
+        let waterState = 'normal'; // 'normal' | 'cold' | 'polluted'
+        let stateTimer = 0;
+
+        // Entity arrays
+        let hydras = [];
+        let preyList = [];        // Daphnia water fleas
+        let cellParticles = [];   // Dissociated ectoderm/endoderm cells
+        let restingCysts = [];    // Sexual reproduction winter cysts
+        let harpoonSparks = [];   // Nematocyst discharge visuals
+        let bubbles = [];         // Ambient tank bubbles
+        let slashTrail = [];      // Visual trail for scalpel slicing
+
+        // Pointer / Mouse tracking
+        const pointer = {
+            x: 0,
+            y: 0,
+            prevX: 0,
+            prevY: 0,
+            isDown: false
+        };
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            groundY = height - 65;
+
+            hydras.forEach(h => {
+                if (!h.isFloating && !h.isSomersaulting) {
+                    h.baseY = groundY;
+                }
+            });
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        /**
+         * Update the Live Lab Observation HUD & track Zoology Rubric unlocks
+         */
+        function updateFieldNotes(key) {
+            const note = ZOOLOGY_NOTES[key];
+            if (!note) return;
+            document.getElementById('noteTag').textContent = note.tag;
+            document.getElementById('noteTitle').textContent = note.title;
+            document.getElementById('noteBody').textContent = note.body;
+
+            if (note.unlock && !unlockedSections.has(note.unlock)) {
+                unlockedSections.add(note.unlock);
+                document.getElementById('rubricProgressBadge').textContent = `${unlockedSections.size}/5 Unlocked`;
+            }
+        }
+
+        function updatePopulationHUD() {
+            document.getElementById('hydraCount').textContent = hydras.length;
+        }
+
+        /**
+         * ===================================================================
+         * CLASS: Hydra
+         * ===================================================================
+         */
+        class Hydra {
+            constructor(x, y, options = {}) {
+                this.baseX = x;
+                this.baseY = y;
+                this.isFloating = options.isFloating || false;
+
+                // Somersault locomotion animation state
+                this.isSomersaulting = false;
+                this.somersaultProgress = 0;
+                this.somersaultDir = 1; // +1 = right, -1 = left
+                this.somersaultStartX = x;
+                this.somersaultTargetX = x;
+                this.anchorX = x;
+
+                // Anatomy dimensions
+                this.maxHeight = options.maxHeight || (115 + Math.random() * 35);
+                this.currentHeight = options.startHeight || this.maxHeight;
+                this.thickness = options.thickness || 11;
+                this.tentacleCount = 6;
+                this.tentacleLength = options.tentacleLength || 52;
+
+                // Regeneration state (0.0 = just cut, 1.0 = fully regrown)
+                this.headRegen = options.headRegen !== undefined ? options.headRegen : 1.0;
+                this.footRegen = options.footRegen !== undefined ? options.footRegen : 1.0;
+
+                // Animation & Nerve Net Contraction
+                this.phase = Math.random() * Math.PI * 2;
+                this.swayAngle = 0;
+                this.contraction = 0;
+                this.flashTimer = 0;
+
+                // Asexual Budding & Sexual Gametes
+                this.budProgress = 0;
+                this.budSide = Math.random() < 0.5 ? -1 : 1;
+                this.hasGametes = false; // True during Cold/Temp Shock sexual mode
+
+                this.hue = 165 + (Math.random() * 24 - 12);
+            }
+
+            contract() {
+                this.contraction = 0.85;
+                this.flashTimer = 15;
+            }
+
+            /**
+             * Trigger biologically accurate directional Hydra somersault locomotion:
+             * 1. Bends away from tactile stimulus (poked on left -> moves right; poked on right -> moves left).
+             * 2. Anchors tentacles (glutinant nematocysts) to the substrate floor at anchorX.
+             * 3. Detaches basal disc and flips 180 degrees overhead to plant its foot further away.
+             */
+            triggerSomersault(direction = 1) {
+                if (this.isSomersaulting || this.isFloating) return;
+                
+                // Keep within tank boundaries; reverse if already against a wall
+                let dir = direction >= 0 ? 1 : -1;
+                const stepDistance = 95 + Math.random() * 35;
+                if (this.baseX + dir * stepDistance > width - 65) dir = -1;
+                if (this.baseX + dir * stepDistance < 65) dir = 1;
+
+                this.isSomersaulting = true;
+                this.somersaultProgress = 0;
+                this.somersaultDir = dir;
+                this.somersaultStartX = this.baseX;
+                this.somersaultTargetX = Math.max(65, Math.min(width - 65, this.baseX + dir * stepDistance));
+                this.anchorX = (this.somersaultStartX + this.somersaultTargetX) / 2;
+            }
+
+            feed() {
+                this.flashTimer = 20;
+                this.budProgress += 0.52;
+                if (this.budProgress >= 1.0) {
+                    this.budProgress = 0;
+                    const offset = (Math.random() * 90 + 35) * this.budSide;
+                    const babyX = Math.max(50, Math.min(width - 50, this.baseX + offset));
+                    if (hydras.length < 30) {
+                        hydras.push(new Hydra(babyX, groundY, {
+                            maxHeight: 85 + Math.random() * 20,
+                            startHeight: 45,
+                            thickness: 8,
+                            tentacleLength: 36
+                        }));
+                        updatePopulationHUD();
+                    }
+                }
+            }
+
+            update(dt) {
+                this.phase += 0.028;
+
+                // 1. Handle Biologically Accurate 3-Phase Somersault Locomotion
+                if (this.isSomersaulting) {
+                    this.somersaultProgress += dt * 1.15;
+                    if (this.somersaultProgress >= 1.0) {
+                        this.isSomersaulting = false;
+                        this.baseX = this.somersaultTargetX;
+                        this.baseY = groundY;
+                        this.swayAngle = 0;
+                    } else {
+                        const t = this.somersaultProgress;
+                        if (t < 0.25) {
+                            // Phase 1: Bend column down toward the substrate to plant tentacles
+                            const p = t / 0.25;
+                            this.baseX = this.somersaultStartX;
+                            this.baseY = groundY;
+                            this.swayAngle = p * (Math.PI * 0.48) * this.somersaultDir;
+                        } else if (t < 0.78) {
+                            // Phase 2: Tentacles anchored at anchorX; basal disc detaches and flips 180° overhead
+                            const p = (t - 0.25) / 0.53;
+                            const flipAngle = Math.PI - p * Math.PI; // PI -> 0
+                            const radius = Math.abs(this.somersaultTargetX - this.anchorX);
+                            this.baseX = this.anchorX - Math.cos(flipAngle) * radius * this.somersaultDir;
+                            this.baseY = groundY - Math.sin(flipAngle) * (this.currentHeight * 0.85);
+                            // Head stays near the anchor point while foot arcs over
+                            this.swayAngle = (Math.PI * 0.48 - p * Math.PI * 0.96) * this.somersaultDir;
+                        } else {
+                            // Phase 3: Basal disc reattaches at new spot; column straightens back up
+                            const p = (t - 0.78) / 0.22;
+                            this.baseX = this.somersaultTargetX;
+                            this.baseY = groundY;
+                            this.swayAngle = (-Math.PI * 0.48) * (1 - p) * this.somersaultDir;
+                        }
+                    }
+                } else if (this.isFloating) {
+                    this.baseY += 65 * dt;
+                    if (this.baseY >= groundY) {
+                        this.baseY = groundY;
+                        this.isFloating = false;
+                    }
+                }
+
+                // 2. Pollution stress shrinks/contracts Hydra until water is cleaned
+                if (waterState === 'polluted') {
+                    this.contraction = Math.min(0.82, this.contraction + 0.6 * dt);
+                } else if (this.contraction > 0) {
+                    this.contraction = Math.max(0, this.contraction - 0.55 * dt);
+                }
+
+                // 3. Morphallaxis regeneration
+                if (this.headRegen < 1.0) {
+                    this.headRegen = Math.min(1.0, this.headRegen + 0.35 * dt);
+                }
+                if (this.footRegen < 1.0) {
+                    this.footRegen = Math.min(1.0, this.footRegen + 0.35 * dt);
+                }
+
+                if (this.currentHeight < this.maxHeight) {
+                    this.currentHeight = Math.min(this.maxHeight, this.currentHeight + 18 * dt);
+                }
+
+                if (this.flashTimer > 0) this.flashTimer--;
+
+                // Gentle ambient sway when not somersaulting
+                if (!this.isSomersaulting) {
+                    this.swayAngle = Math.sin(this.phase) * 0.22;
+                }
+            }
+
+            getHeadPosition() {
+                const effectiveHeight = this.currentHeight * (1 - this.contraction * 0.65);
+                // During Phase 2 of somersault, pin the head/tentacles to the substrate anchor point
+                if (this.isSomersaulting && this.somersaultProgress >= 0.25 && this.somersaultProgress < 0.78) {
+                    return { x: this.anchorX, y: groundY - 6, effectiveHeight };
+                }
+                const headX = this.baseX + Math.sin(this.swayAngle) * effectiveHeight;
+                const headY = this.baseY - Math.cos(this.swayAngle) * effectiveHeight;
+                return { x: headX, y: headY, effectiveHeight };
+            }
+
+            draw(ctx) {
+                const { x: headX, y: headY } = this.getHeadPosition();
+                const midX = (this.baseX + headX) / 2 + Math.sin(this.phase * 1.3) * 8;
+                const midY = (this.baseY + headY) / 2;
+
+                // Color shifts if polluted with copper toxins
+                let bodyColor = `hsla(${this.hue}, 72%, 62%, 0.85)`;
+                if (waterState === 'polluted') {
+                    bodyColor = `hsla(35, 65%, 52%, 0.82)`;
+                } else if (this.flashTimer > 0) {
+                    bodyColor = `hsla(45, 95%, 70%, 0.9)`;
+                }
+                const coreColor = `hsla(${this.hue - 15}, 85%, 78%, 0.55)`;
+
+                ctx.save();
+                ctx.lineCap = 'round';
+
+                // 1. Basal Disc
+                if (this.footRegen > 0.2) {
+                    ctx.fillStyle = bodyColor;
+                    ctx.beginPath();
+                    ctx.ellipse(this.baseX, this.baseY, this.thickness * 1.1 * this.footRegen, 5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 2. Columnar Stalk
+                const stalkWidth = this.thickness * (1 + this.contraction * 0.65);
+                ctx.strokeStyle = bodyColor;
+                ctx.lineWidth = stalkWidth;
+                ctx.beginPath();
+                ctx.moveTo(this.baseX, this.baseY);
+                ctx.quadraticCurveTo(midX, midY, headX, headY);
+                ctx.stroke();
+
+                ctx.strokeStyle = coreColor;
+                ctx.lineWidth = stalkWidth * 0.42;
+                ctx.beginPath();
+                ctx.moveTo(this.baseX, this.baseY - 4);
+                ctx.quadraticCurveTo(midX, midY, headX, headY);
+                ctx.stroke();
+
+                // 3. Sexual Gametes (Testes/Ovaries bumps during Cold Shock)
+                if (this.hasGametes) {
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(midX - stalkWidth * 0.65, midY - 12, 4.5, 0, Math.PI * 2);
+                    ctx.arc(midX + stalkWidth * 0.7, midY + 14, 6.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 4. Asexual Budding
+                if (this.budProgress > 0.05) {
+                    const budBaseX = midX + (stalkWidth * 0.4 * this.budSide);
+                    const budBaseY = midY + 8;
+                    const budLen = 32 * this.budProgress;
+                    const budTipX = budBaseX + Math.cos(0.6) * budLen * this.budSide;
+                    const budTipY = budBaseY - Math.sin(0.6) * budLen;
+
+                    ctx.strokeStyle = bodyColor;
+                    ctx.lineWidth = stalkWidth * 0.55;
+                    ctx.beginPath();
+                    ctx.moveTo(budBaseX, budBaseY);
+                    ctx.lineTo(budTipX, budTipY);
+                    ctx.stroke();
+
+                    if (this.budProgress > 0.5) {
+                        for (let b = -1; b <= 1; b++) {
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(budTipX, budTipY);
+                            ctx.lineTo(budTipX + (12 * this.budSide) + b * 4, budTipY - 10 + b * 5);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // 5. Hypostome & Tentacles
+                if (this.headRegen > 0.15) {
+                    const tLen = this.tentacleLength * this.headRegen * (1 - this.contraction * 0.72);
+                    for (let i = 0; i < this.tentacleCount; i++) {
+                        const spread = ((i / (this.tentacleCount - 1)) - 0.5) * 2.2;
+                        const baseAngle = -Math.PI / 2 + this.swayAngle + spread;
+                        const wave = Math.sin(this.phase * 1.8 + i * 1.1) * 0.35;
+
+                        const ctrlX = headX + Math.cos(baseAngle + wave * 0.5) * (tLen * 0.55);
+                        const ctrlY = headY + Math.sin(baseAngle + wave * 0.5) * (tLen * 0.55);
+                        const tipX = headX + Math.cos(baseAngle - wave) * tLen;
+                        const tipY = headY + Math.sin(baseAngle - wave) * tLen;
+
+                        ctx.strokeStyle = `hsla(${this.hue + 10}, 80%, 72%, 0.85)`;
+                        ctx.lineWidth = 2.6;
+                        ctx.beginPath();
+                        ctx.moveTo(headX, headY);
+                        ctx.quadraticCurveTo(ctrlX, ctrlY, tipX, tipY);
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#ccfbf1';
+                        ctx.beginPath();
+                        ctx.arc(tipX, tipY, 1.8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = `hsla(${this.hue}, 85%, 78%, 0.95)`;
+                    ctx.beginPath();
+                    ctx.arc(headX, headY, stalkWidth * 0.52 * this.headRegen, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        /**
+         * ===================================================================
+         * CLASS: Daphnia (Prey) & Nematocyst Harpoon Sparks
+         * ===================================================================
+         */
+        class Daphnia {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 40;
+                this.vy = 35 + Math.random() * 25;
+                this.hopTimer = 0;
+                this.alive = true;
+            }
+
+            update(dt) {
+                this.hopTimer += dt * 6;
+                if (Math.sin(this.hopTimer) > 0.7) {
+                    this.vy = -25;
+                    this.vx += (Math.random() - 0.5) * 30;
+                } else {
+                    this.vy += 85 * dt;
+                }
+
+                this.vx *= 0.96;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                if (this.x < 25) { this.x = 25; this.vx *= -1; }
+                if (this.x > width - 25) { this.x = width - 25; this.vx *= -1; }
+                if (this.y > groundY - 6) {
+                    this.y = groundY - 6;
+                    this.vy = -40;
+                }
+
+                // Check capture by Hydra tentacles & fire Nematocyst harpoon sparks!
+                for (let h of hydras) {
+                    const head = h.getHeadPosition();
+                    const dist = Math.hypot(this.x - head.x, this.y - head.y);
+                    if (dist < h.tentacleLength * 0.95 && h.headRegen > 0.5) {
+                        for (let s = 0; s < 8; s++) {
+                            harpoonSparks.push({
+                                x: this.x,
+                                y: this.y,
+                                vx: (Math.random() - 0.5) * 140,
+                                vy: (Math.random() - 0.5) * 140,
+                                life: 0.45
+                            });
+                        }
+                        h.feed();
+                        this.alive = false;
+                        break;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#fb923c';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 5, 7, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(2, -3, 1.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#fdba74';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(2, -3);
+                ctx.lineTo(8, -8 + Math.sin(this.hopTimer * 3) * 3);
+                ctx.moveTo(2, -3);
+                ctx.lineTo(8, -2 - Math.sin(this.hopTimer * 3) * 3);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        /**
+         * ===================================================================
+         * CLASS: RestingCyst (Fertilized Sexual Egg Cyst from Temp Shock)
+         * ===================================================================
+         */
+        class RestingCyst {
+            constructor(x, y, targetX) {
+                this.x = x;
+                this.y = y;
+                this.vx = (targetX - x) * 0.8;
+                this.vy = -30;
+                this.timer = 0;
+                this.hatched = false;
+            }
+
+            update(dt) {
+                this.timer += dt;
+                if (this.y < groundY - 5) {
+                    this.vy += 65 * dt;
+                    this.x += this.vx * dt;
+                    this.y += this.vy * dt;
+                } else {
+                    this.y = groundY - 5;
+                }
+
+                // Hatches directly into a juvenile polyp after 2.4 seconds
+                if (this.timer >= 2.4 && !this.hatched) {
+                    this.hatched = true;
+                    if (hydras.length < 30) {
+                        hydras.push(new Hydra(this.x, groundY, {
+                            startHeight: 35,
+                            maxHeight: 95 + Math.random() * 20,
+                            tentacleLength: 38
+                        }));
+                        updatePopulationHUD();
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                // Spiky chitinous embryotheca shell
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 1.5;
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * 5, Math.sin(a) * 5);
+                    ctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 9);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        /**
+         * ===================================================================
+         * CLASS: DissociatedCell (Cell Blender Reaggregation)
+         * ===================================================================
+         */
+        class DissociatedCell {
+            constructor(x, y, targetX, targetY, isEndoderm) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 420;
+                this.vy = (Math.random() - 0.5) * 420 - 100;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.isEndoderm = isEndoderm;
+                this.timer = 0;
+                this.reaggregateDelay = 1.1 + Math.random() * 0.6;
+                this.done = false;
+            }
+
+            update(dt) {
+                this.timer += dt;
+                if (this.timer < this.reaggregateDelay) {
+                    this.vx *= 0.94;
+                    this.vy *= 0.94;
+                    this.vy += Math.sin(this.timer * 10 + this.x) * 8;
+                    this.x += this.vx * dt;
+                    this.y += this.vy * dt;
+                } else {
+                    const dx = this.targetX - this.x;
+                    const dy = (this.targetY - 12) - this.y;
+                    this.x += dx * 4.5 * dt;
+                    this.y += dy * 4.5 * dt;
+                    if (Math.hypot(dx, dy) < 10) {
+                        this.done = true;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = this.isEndoderm ? '#f472b6' : '#2dd4bf';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /**
+         * ===================================================================
+         * TOOL ACTIONS
+         * ===================================================================
+         */
+        function sliceHydra(hydra) {
+            if (hydras.length >= 30) {
+                hydra.contract();
+                return;
+            }
+            const head = hydra.getHeadPosition();
+            const midY = (hydra.baseY + head.y) / 2;
+
+            const idx = hydras.indexOf(hydra);
+            if (idx > -1) hydras.splice(idx, 1);
+
+            const bottomHalf = new Hydra(hydra.baseX - 18, groundY, {
+                maxHeight: hydra.maxHeight * 0.95,
+                startHeight: hydra.currentHeight * 0.5,
+                headRegen: 0.05,
+                footRegen: 1.0
+            });
+            bottomHalf.contract();
+
+            const topHalf = new Hydra(hydra.baseX + 24, midY, {
+                isFloating: true,
+                maxHeight: hydra.maxHeight * 0.95,
+                startHeight: hydra.currentHeight * 0.5,
+                headRegen: 1.0,
+                footRegen: 0.05
+            });
+
+            hydras.push(bottomHalf, topHalf);
+            updatePopulationHUD();
+            updateFieldNotes('scalpel');
+        }
+
+        function triggerBlender() {
+            if (hydras.length === 0 && cellParticles.length > 0) return;
+            updateFieldNotes('blender');
+
+            const currentCount = Math.max(1, hydras.length);
+            const newColonyCount = Math.min(16, currentCount + 2);
+            const targets = [];
+
+            for (let i = 0; i < newColonyCount; i++) {
+                targets.push({ x: 80 + Math.random() * (width - 160) });
+            }
+
+            hydras.forEach(h => {
+                const head = h.getHeadPosition();
+                for (let i = 0; i < 28; i++) {
+                    const t = targets[i % targets.length];
+                    cellParticles.push(new DissociatedCell(
+                        (h.baseX + head.x) / 2,
+                        (h.baseY + head.y) / 2,
+                        t.x,
+                        groundY,
+                        i % 2 === 0
+                    ));
+                }
+            });
+
+            hydras = [];
+            updatePopulationHUD();
+
+            setTimeout(() => {
+                targets.forEach(t => {
+                    if (hydras.length < 30) {
+                        hydras.push(new Hydra(t.x, groundY, {
+                            startHeight: 35,
+                            maxHeight: 95 + Math.random() * 25,
+                            headRegen: 0.3,
+                            footRegen: 0.5
+                        }));
+                    }
+                });
+                updatePopulationHUD();
+            }, 1950);
+        }
+
+        function triggerTempShock() {
+            waterState = 'cold';
+            stateTimer = 4.5;
+            updateFieldNotes('temp');
+
+            hydras.forEach(h => {
+                h.hasGametes = true;
+                h.flashTimer = 18;
+                const head = h.getHeadPosition();
+                const targetX = Math.max(60, Math.min(width - 60, h.baseX + (Math.random() - 0.5) * 160));
+                restingCysts.push(new RestingCyst(head.x, head.y, targetX));
+            });
+        }
+
+        function triggerCopperToxin() {
+            waterState = 'polluted';
+            stateTimer = 8.0;
+            updateFieldNotes('copper');
+            hydras.forEach(h => h.contract());
+        }
+
+        function flushCleanWater() {
+            waterState = 'normal';
+            stateTimer = 0;
+            hydras.forEach(h => {
+                h.hasGametes = false;
+                h.contraction = 0;
+            });
+            updateFieldNotes('intro');
+        }
+
+        function segmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+            const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+            if (denom === 0) return false;
+            const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+            const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+            return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
+        }
+
+        function handlePointerDown(x, y) {
+            if (!gameStarted) return;
+            pointer.isDown = true;
+            pointer.x = pointer.prevX = x;
+            pointer.y = pointer.prevY = y;
+
+            if (activeTool === 'poke') {
+                updateFieldNotes('poke');
+                hydras.forEach(h => {
+                    const head = h.getHeadPosition();
+                    const midX = (h.baseX + head.x) / 2;
+                    const dist = Math.hypot(x - head.x, y - head.y);
+                    const baseDist = Math.hypot(x - h.baseX, y - (h.baseY - h.currentHeight * 0.5));
+                    if (dist < 85 || baseDist < 85) {
+                        h.contract();
+                        // Poked on left (x < midX) -> somersault right (+1); poked on right -> somersault left (-1)
+                        const escapeDir = x < midX ? 1 : -1;
+                        h.triggerSomersault(escapeDir);
+                    }
+                });
+            } else if (activeTool === 'feed') {
+                updateFieldNotes('feed');
+                preyList.push(new Daphnia(x - 8, y));
+                preyList.push(new Daphnia(x + 8, y - 6));
+            } else if (activeTool === 'blender') {
+                triggerBlender();
+            } else if (activeTool === 'temp') {
+                triggerTempShock();
+            } else if (activeTool === 'copper') {
+                triggerCopperToxin();
+            }
+        }
+
+        function handlePointerMove(x, y) {
+            if (!gameStarted) return;
+            pointer.prevX = pointer.x;
+            pointer.prevY = pointer.y;
+            pointer.x = x;
+            pointer.y = y;
+
+            if (!pointer.isDown) return;
+
+            if (activeTool === 'scalpel') {
+                slashTrail.push({ x, y, alpha: 1.0 });
+                const snapshot = [...hydras];
+                snapshot.forEach(h => {
+                    if (h.currentHeight > 55 && h.headRegen > 0.6 && h.footRegen > 0.6) {
+                        const head = h.getHeadPosition();
+                        if (segmentsIntersect(pointer.prevX, pointer.prevY, pointer.x, pointer.y, h.baseX, h.baseY, head.x, head.y)) {
+                            sliceHydra(h);
+                        }
+                    }
+                });
+            }
+        }
+
+        function handlePointerUp() {
+            pointer.isDown = false;
+        }
+
+        canvas.addEventListener('mousedown', e => handlePointerDown(e.clientX, e.clientY));
+        canvas.addEventListener('mousemove', e => handlePointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', e => {
+            const t = e.touches[0];
+            handlePointerDown(t.clientX, t.clientY);
+        }, { passive: true });
+        canvas.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            handlePointerMove(t.clientX, t.clientY);
+        }, { passive: true });
+        window.addEventListener('touchend', handlePointerUp);
+
+        /**
+         * ===================================================================
+         * UI, DRAWER & RUBRIC MODAL CONTROLS
+         * ===================================================================
+         */
+        const toolsDrawer = document.getElementById('toolsDrawer');
+        const drawerToggleTab = document.getElementById('drawerToggleTab');
+        const drawerArrowIcon = document.getElementById('drawerArrowIcon');
+
+        function setDrawerCollapsed(collapsed) {
+            if (collapsed) {
+                toolsDrawer.classList.add('collapsed');
+                drawerToggleTab.style.left = '0px';
+                drawerArrowIcon.textContent = '▶';
+            } else {
+                toolsDrawer.classList.remove('collapsed');
+                drawerToggleTab.style.left = '16rem';
+                drawerArrowIcon.textContent = '◀';
+            }
+        }
+
+        document.getElementById('enterLabBtn').addEventListener('click', () => {
+            gameStarted = true;
+            document.getElementById('titleScreen').classList.add('fade-out');
+            document.getElementById('labHud').classList.remove('opacity-0');
+            toolsDrawer.classList.remove('opacity-0');
+            drawerToggleTab.classList.remove('opacity-0', 'pointer-events-none');
+            setDrawerCollapsed(false);
+            updateFieldNotes('intro');
+        });
+
+        // Pop-out Left Drawer Toggle (always stays visible on left viewport edge)
+        drawerToggleTab.addEventListener('click', () => {
+            setDrawerCollapsed(!toolsDrawer.classList.contains('collapsed'));
+        });
+        document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+            setDrawerCollapsed(true);
+        });
+        window.addEventListener('keydown', (e) => {
+            if (gameStarted && (e.key === 't' || e.key === 'T')) {
+                setDrawerCollapsed(!toolsDrawer.classList.contains('collapsed'));
+            }
+        });
+
+        // Tool selection buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeTool = btn.dataset.tool;
+                updateFieldNotes(activeTool);
+
+                if (activeTool === 'blender') triggerBlender();
+                if (activeTool === 'temp') triggerTempShock();
+                if (activeTool === 'copper') triggerCopperToxin();
+            });
+        });
+
+        document.getElementById('flushTankBtn').addEventListener('click', flushCleanWater);
+
+        document.getElementById('resetTankBtn').addEventListener('click', () => {
+            flushCleanWater();
+            hydras = [new Hydra(width / 2, groundY)];
+            preyList = [];
+            cellParticles = [];
+            restingCysts = [];
+            updatePopulationHUD();
+            updateFieldNotes('intro');
+        });
+
+        // Zoology Field Guide Modal Controls
+        const guideModal = document.getElementById('guideModal');
+        const guideContent = document.getElementById('guideContent');
+
+        function renderGuideTab(tabKey) {
+            const data = RUBRIC_SECTIONS[tabKey];
+            if (!data) return;
+
+            document.querySelectorAll('.guide-tab').forEach(t => {
+                if (t.dataset.tab === tabKey) {
+                    t.className = 'guide-tab active shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-500/25 text-teal-200 border border-teal-400/50 cursor-pointer';
+                } else {
+                    t.className = 'guide-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-teal-400/40 cursor-pointer';
+                }
+            });
+
+            guideContent.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-700/70">
+                    <h3 class="text-lg sm:text-xl font-extrabold text-white">${data.title}</h3>
+                    <span class="mono-font text-xs px-3 py-1 rounded-full bg-teal-500/15 text-teal-300 border border-teal-400/30">${data.badge}</span>
+                </div>
+                ${data.html}
+            `;
+        }
+
+        document.getElementById('openGuideBtn').addEventListener('click', () => {
+            guideModal.classList.remove('hidden');
+            guideModal.classList.add('flex');
+            renderGuideTab('characteristics');
+        });
+
+        function closeGuideModal() {
+            guideModal.classList.add('hidden');
+            guideModal.classList.remove('flex');
+        }
+        document.getElementById('closeGuideBtn').addEventListener('click', closeGuideModal);
+        document.getElementById('closeGuideFooterBtn').addEventListener('click', closeGuideModal);
+
+        document.querySelectorAll('.guide-tab').forEach(tab => {
+            tab.addEventListener('click', () => renderGuideTab(tab.dataset.tab));
+        });
+
+        /**
+         * ===================================================================
+         * ENVIRONMENT RENDERING & ANIMATION LOOP
+         * ===================================================================
+         */
+        function initEnvironment() {
+            resizeCanvas();
+            hydras = [new Hydra(width / 2, groundY)];
+            updatePopulationHUD();
+
+            for (let i = 0; i < 28; i++) {
+                bubbles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: 1.5 + Math.random() * 3.5,
+                    speed: 12 + Math.random() * 22
+                });
+            }
+        }
+
+        function drawEnvironment(dt) {
+            // Water tint shifts dynamically for Cold Shock or Copper Pollution!
+            let c1 = '#0f3847', c2 = '#08202c', c3 = '#041118';
+            if (waterState === 'cold') {
+                c1 = '#164e63'; c2 = '#0c4a6e'; c3 = '#082f49';
+            } else if (waterState === 'polluted') {
+                c1 = '#3f3f26'; c2 = '#292518'; c3 = '#18150d';
+            }
+
+            const bgGrad = ctx.createRadialGradient(width / 2, height * 0.4, 50, width / 2, height / 2, Math.max(width, height) * 0.75);
+            bgGrad.addColorStop(0, c1);
+            bgGrad.addColorStop(0.6, c2);
+            bgGrad.addColorStop(1, c3);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Light rays
+            ctx.save();
+            ctx.fillStyle = waterState === 'polluted' ? 'rgba(234, 179, 8, 0.03)' : 'rgba(45, 212, 191, 0.03)';
+            for (let i = 0; i < 4; i++) {
+                const rayX = width * (0.2 + i * 0.2) + Math.sin(time * 0.5 + i) * 30;
+                ctx.beginPath();
+                ctx.moveTo(rayX - 40, 0);
+                ctx.lineTo(rayX + 40, 0);
+                ctx.lineTo(rayX + 140, height);
+                ctx.lineTo(rayX - 140, height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Bubbles
+            ctx.fillStyle = 'rgba(153, 246, 228, 0.16)';
+            bubbles.forEach(b => {
+                b.y -= b.speed * dt;
+                b.x += Math.sin(time * 2 + b.y * 0.02) * 0.3;
+                if (b.y < -10) {
+                    b.y = height + 10;
+                    b.x = Math.random() * width;
+                }
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Substrate floor
+            const floorGrad = ctx.createLinearGradient(0, groundY, 0, height);
+            floorGrad.addColorStop(0, '#0d333f');
+            floorGrad.addColorStop(1, '#05151c');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, groundY, width, height - groundY);
+
+            ctx.strokeStyle = 'rgba(45, 212, 191, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(width, groundY);
+            ctx.stroke();
+        }
+
+        let lastTimestamp = 0;
+        function animate(timestamp) {
+            const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000 || 0.016);
+            lastTimestamp = timestamp;
+            time += dt;
+
+            // Auto-recover water state timer
+            if (stateTimer > 0) {
+                stateTimer -= dt;
+                if (stateTimer <= 0 && waterState !== 'normal') {
+                    flushCleanWater();
+                }
+            }
+
+            drawEnvironment(dt);
+
+            // Resting Cysts (Sexual Reproduction)
+            restingCysts = restingCysts.filter(c => !c.hatched);
+            restingCysts.forEach(c => {
+                c.update(dt);
+                c.draw(ctx);
+            });
+
+            // Daphnia prey
+            preyList = preyList.filter(p => p.alive);
+            preyList.forEach(p => {
+                p.update(dt);
+                p.draw(ctx);
+            });
+
+            // Nematocyst harpoon sparks
+            harpoonSparks.forEach(s => {
+                s.x += s.vx * dt;
+                s.y += s.vy * dt;
+                s.life -= dt;
+                ctx.fillStyle = `rgba(253, 224, 71, ${Math.max(0, s.life * 2)})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            harpoonSparks = harpoonSparks.filter(s => s.life > 0);
+
+            // Dissociated cells
+            cellParticles = cellParticles.filter(c => !c.done);
+            cellParticles.forEach(c => {
+                c.update(dt);
+                c.draw(ctx);
+            });
+
+            // Hydras
+            hydras.forEach(h => {
+                h.update(dt);
+                h.draw(ctx);
+            });
+
+            // Scalpel slash trail
+            if (slashTrail.length > 1) {
+                ctx.save();
+                ctx.lineCap = 'round';
+                for (let i = 1; i < slashTrail.length; i++) {
+                    const p1 = slashTrail[i - 1];
+                    const p2 = slashTrail[i];
+                    ctx.strokeStyle = `rgba(248, 250, 252, ${p2.alpha})`;
+                    ctx.lineWidth = p2.alpha * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+            slashTrail.forEach(pt => pt.alpha -= 3.5 * dt);
+            slashTrail = slashTrail.filter(pt => pt.alpha > 0);
+
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = function() {
+            initEnvironment();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
