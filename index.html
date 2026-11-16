@@ -725,26 +725,25 @@
                     } else {
                         const t = this.somersaultProgress;
                         if (t < 0.25) {
-                            // Phase 1: Bend column down toward the substrate to plant tentacles
+                            // Phase 1: Bend forward until tentacles touch the substrate at anchorX
                             const p = t / 0.25;
                             this.baseX = this.somersaultStartX;
                             this.baseY = groundY;
                             this.swayAngle = p * (Math.PI * 0.48) * this.somersaultDir;
                         } else if (t < 0.78) {
-                            // Phase 2: Tentacles anchored at anchorX; basal disc detaches and flips 180° overhead
-                            const p = (t - 0.25) / 0.53;
-                            const flipAngle = Math.PI - p * Math.PI; // PI -> 0
-                            const radius = Math.abs(this.somersaultTargetX - this.anchorX);
-                            this.baseX = this.anchorX - Math.cos(flipAngle) * radius * this.somersaultDir;
-                            this.baseY = groundY - Math.sin(flipAngle) * (this.currentHeight * 0.85);
-                            // Head stays near the anchor point while foot arcs over
-                            this.swayAngle = (Math.PI * 0.48 - p * Math.PI * 0.96) * this.somersaultDir;
+                            // Phase 2: Head stays anchored at anchorX; basal disc flips 180° overhead
+                            const p = (t - 0.25) / 0.53; // 0 -> 1
+                            // Smoothly move baseX from somersaultStartX to somersaultTargetX
+                            const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
+                            this.baseX = this.somersaultStartX + (this.somersaultTargetX - this.somersaultStartX) * ease;
+                            // Lift basal disc in a clean semicircular arc above the floor
+                            this.baseY = groundY - Math.sin(p * Math.PI) * (this.currentHeight * 0.95);
                         } else {
-                            // Phase 3: Basal disc reattaches at new spot; column straightens back up
+                            // Phase 3: Basal disc is planted at somersaultTargetX; column stands straight up
                             const p = (t - 0.78) / 0.22;
                             this.baseX = this.somersaultTargetX;
                             this.baseY = groundY;
-                            this.swayAngle = (-Math.PI * 0.48) * (1 - p) * this.somersaultDir;
+                            this.swayAngle = -(Math.PI * 0.48) * (1 - p) * this.somersaultDir;
                         }
                     }
                 } else if (this.isFloating) {
@@ -872,10 +871,14 @@
                 // 5. Hypostome & Tentacles
                 if (this.headRegen > 0.15) {
                     const tLen = this.tentacleLength * this.headRegen * (1 - this.contraction * 0.72);
+                    const isAnchored = this.isSomersaulting && this.somersaultProgress >= 0.25 && this.somersaultProgress < 0.78;
                     for (let i = 0; i < this.tentacleCount; i++) {
                         const spread = ((i / (this.tentacleCount - 1)) - 0.5) * 2.2;
-                        const baseAngle = -Math.PI / 2 + this.swayAngle + spread;
-                        const wave = Math.sin(this.phase * 1.8 + i * 1.1) * 0.35;
+                        // Point tentacles downward into the substrate while anchored during somersault
+                        const baseAngle = isAnchored
+                            ? (Math.PI / 2 + spread * 0.65)
+                            : (-Math.PI / 2 + this.swayAngle + spread);
+                        const wave = isAnchored ? 0 : Math.sin(this.phase * 1.8 + i * 1.1) * 0.35;
 
                         const ctrlX = headX + Math.cos(baseAngle + wave * 0.5) * (tLen * 0.55);
                         const ctrlY = headY + Math.sin(baseAngle + wave * 0.5) * (tLen * 0.55);
